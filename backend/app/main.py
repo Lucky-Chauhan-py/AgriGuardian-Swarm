@@ -43,10 +43,9 @@ app.include_router(analytics.router, prefix=api_router_prefix)
 def seed_db():
     db = SessionLocal()
     try:
-        # Check if user already exists
+        # 1. Ensure default user exists
         user = db.query(User).filter(User.email == "farmer@agriguardian.com").first()
         if not user:
-            # Create default user
             user = User(
                 email="farmer@agriguardian.com",
                 hashed_password=get_password_hash("farmer123"),
@@ -58,8 +57,15 @@ def seed_db():
             db.add(user)
             db.commit()
             db.refresh(user)
+            print("User farmer@agriguardian.com created.")
+        else:
+            user.hashed_password = get_password_hash("farmer123")
+            db.commit()
+            print("User farmer@agriguardian.com password verified/updated.")
 
-            # Create default farm
+        # 2. Ensure default farm exists for this user
+        farm = db.query(Farm).filter(Farm.owner_id == user.id).first()
+        if not farm:
             farm = Farm(
                 owner_id=user.id,
                 name="Green Valley Farms",
@@ -72,12 +78,11 @@ def seed_db():
             db.add(farm)
             db.commit()
             db.refresh(farm)
-        else:
-            # Update password to ensure it is correctly hashed as 'farmer123'
-            user.hashed_password = get_password_hash("farmer123")
-            db.commit()
+            print("Farm created.")
 
-            # Create default fields
+        # 3. Ensure fields exist for this farm
+        fields_count = db.query(Field).filter(Field.farm_id == farm.id).count()
+        if fields_count == 0:
             field1 = Field(
                 farm_id=farm.id,
                 name="North Tomato Patch",
@@ -96,8 +101,12 @@ def seed_db():
             )
             db.add(field1)
             db.add(field2)
+            db.commit()
+            print("Fields created.")
 
-            # Create default sustainability metrics
+        # 4. Ensure sustainability metrics exist
+        metrics_count = db.query(SustainabilityMetric).filter(SustainabilityMetric.farm_id == farm.id).count()
+        if metrics_count == 0:
             metric = SustainabilityMetric(
                 farm_id=farm.id,
                 water_usage_liters=15000.0,
@@ -107,7 +116,9 @@ def seed_db():
             )
             db.add(metric)
             db.commit()
-            print("Database seeded successfully with default farmer account!")
+            print("Sustainability metrics created.")
+
+        print("Database seeding verification completed successfully!")
     except Exception as e:
         print(f"Error seeding database: {e}")
     finally:

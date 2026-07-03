@@ -2,6 +2,10 @@
 title AgriGuardian Swarm - Starting...
 color 0A
 
+:: Kill any existing stuck servers first to free up ports 8000 and 3000
+taskkill /f /im "uvicorn.exe" >nul 2>&1
+taskkill /f /im "node.exe" >nul 2>&1
+
 echo.
 echo  ======================================================
 echo   AgriGuardian Swarm - Autonomous AI OS for Farmers

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sprout, Plus, CheckCircle, Database, HelpCircle, HardHat, Landplot } from "lucide-react";
+import { Sprout, Plus, CheckCircle, Database, HelpCircle, HardHat, LandPlot } from "lucide-react";
 
 export default function FarmOverview() {
   const [fields, setFields] = useState<any[]>([]);
@@ -61,7 +61,7 @@ export default function FarmOverview() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="glass-panel p-6 rounded-2xl md:col-span-2 space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
-              <Landplot className="text-teal-600" /> Farm Registration Registry
+              <LandPlot className="text-teal-600" /> Farm Registration Registry
             </h3>
             <div className="grid grid-cols-2 gap-6">
               <div>

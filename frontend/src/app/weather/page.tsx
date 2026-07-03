@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { CloudSun, Sun, CloudRain, CloudLighting, CloudDrizzle, Info, Thermometer, Droplet, Wind } from "lucide-react";
+import { CloudSun, Sun, CloudRain, CloudLightning, CloudDrizzle, Info, Thermometer, Droplet, Wind } from "lucide-react";
 
 export default function WeatherCenter() {
   const [weather, setWeather] = useState<any>(null);
