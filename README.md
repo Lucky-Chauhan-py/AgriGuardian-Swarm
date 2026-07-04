@@ -1,118 +1,85 @@
-# AgriGuardian Swarm - Autonomous AI OS for Farmers
+# 🌾 AgriGuardian Swarm — Autonomous AI OS for Farmers
 
-AgriGuardian Swarm is a complete, production-ready Multi-Agent AI Operating System for Farmers. It coordinates 12 specialized, collaborating AI agents to monitor farm conditions, analyze crop health, manage tasks, predict risks, and offer market and government scheme recommendations. 
+> An autonomous multi-agent system that continuously monitors, diagnoses, and protects smallholder farms — so farmers spend less time worrying and more time growing.
 
-Instead of waiting for individual prompts, the agents communicate, plan, and verify actions autonomously behind a unified, glassmorphic dashboard and voice-assisted interface.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
+[![Gemini](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-blue)](https://ai.google.dev/)
+[![Agents for Good](https://img.shields.io/badge/Google%20×%20Kaggle-Agents%20for%20Good-orange)](https://kaggle.com)
 
 ---
 
-## System Architecture
+## 🏗️ System Architecture
 
-```mermaid
-graph TD
-    subgraph Frontend [Next.js Web App]
-        UI[Dashboard / Chat / Scanner / Reports]
-        Voice[Voice Assistant - EN/HI/PA]
-        Sim[Simulators - Yield/Water/Expense]
-    end
+![AgriGuardian Swarm System Architecture](docs/architecture.png)
 
-    subgraph Backend [FastAPI Server]
-        API[REST & WebSockets API]
-        DB[(SQLite DB & SQLAlchemy)]
-        FAISS[(FAISS Vector Store - RAG)]
-        
-        subgraph Multi-Agent Swarm [Custom Agent Orchestrator]
-            Coord[1. Coordinator Agent]
-            Profile[2. Farm Profile Agent]
-            Vision[3. Vision Agent]
-            Weather[4. Weather Agent]
-            Market[5. Market Agent]
-            Gov[6. Government Scheme Agent]
-            Plan[7. Crop Planning Agent]
-            Risk[8. Risk Analysis Agent]
-            Mem[9. Memory Agent]
-            Rep[10. Report Agent]
-            Notif[11. Notification Agent]
-            Sust[12. Sustainability Agent]
-        end
-    end
+---
 
-    UI <--> API
-    API <--> Coord
-    Coord <--> Profile & Vision & Weather & Market & Gov & Plan & Risk & Mem & Rep & Notif & Sust
-    Gov <--> FAISS
-    Mem <--> DB
-    API <--> DB
+## 🔄 10-Agent Crop Scan Pipeline
+
+![AgriGuardian Swarm Agent Flow](docs/flow.png)
+
+---
+
+## 🤖 The 12 Agents
+
+| Agent | Role |
+|-------|------|
+| **Coordinator** | Orchestrates all agents and delivers one unified action plan |
+| **Vision Agent** | Analyzes crop photos via Gemini Vision to detect disease and pests |
+| **Weather Agent** | Generates irrigation advice and frost/heatwave alerts |
+| **Risk Agent** | Calculates compound risk scores for crop failure and yield loss |
+| **Planning Agent** | Creates daily, weekly, and seasonal farm task schedules |
+| **Market Agent** | Monitors mandi prices and computes net profit margins |
+| **GovScheme Agent** | Semantic RAG search to match farms with government subsidies |
+| **Memory Agent** | Maintains a FAISS vector database of every farm event |
+| **Notification Agent** | Schedules treatment reminders and market alerts |
+| **Report Agent** | Generates downloadable PDF farm reports |
+| **Sustainability Agent** | Tracks carbon footprint and water efficiency |
+| **Profile Agent** | Manages farm onboarding and context for all agents |
+
+---
+
+## 🚀 Quick Start (One Click)
+
+```bash
+git clone https://github.com/YOUR_USERNAME/agriguardian-swarm
+cd agriguardian-swarm
 ```
 
----
+**Windows:** Double-click `START.bat`
 
-## The 12 Autonomous Agents
+The script automatically installs all dependencies, seeds demo data, starts both servers, and opens your browser.
 
-1. **Coordinator Agent (Swarm Orchestrator)**: Brain of the system. Receives requests, decides which agents should run, and combines outputs.
-2. **Farm Profile Agent (Farm Registry Officer)**: Maintains farm details, soil, irrigation, land records, and farmer preferences.
-3. **Vision Agent (Crop Disease & Pest Diagnostician)**: Uses Gemini Vision to detect diseases, pests, nutrient deficiencies, and severity.
-4. **Weather Intelligence Agent (Agrometeorological Specialist)**: Analyzes weather, rain, heatwaves, and frost risks, giving irrigation advice.
-5. **Market Intelligence Agent (Agri-Market Economist)**: Collects Mandi prices, predicts selling opportunities, and estimates profit.
-6. **Government Scheme Agent (Agricultural Policy Consultant)**: Uses FAISS RAG to match loans, subsidies, and eligibility.
-7. **Crop Planning Agent (Agronomist Planner)**: Creates daily/weekly tasks, fertilizer schedules, and crop rotation advice.
-8. **Risk Analysis Agent (Agricultural Risk Actuary)**: Predicts disease outbreaks, water shortages, crop failures, and yield reductions.
-9. **Memory Agent (Context & Memory Custodian)**: Stores and retrieves long-term farm history and chat preferences.
-10. **Report Agent (Farm Analytics Compiler)**: Compiles summaries and generates downloadable PDF reports.
-11. **Notification Agent (Proactive Alert Dispatcher)**: Dispatches weather alerts, medicine/fertilizer reminders, and price alerts.
-12. **Sustainability Agent (Eco-Agronomy Specialist)**: Calculates water usage, carbon footprint, and eco-efficiency scores.
+**Demo Login:** `farmer@agriguardian.com` / `farmer123`
 
 ---
 
-## Installation Guide
+## 🛠️ Tech Stack
 
-### Option 1: Docker Compose (Recommended)
-
-1. Clone or navigate to the project directory.
-2. Run the services:
-   ```bash
-   docker-compose up --build
-   ```
-3. Open your browser and navigate to:
-   - Frontend: `http://localhost:3000`
-   - Backend API Docs (Swagger): `http://localhost:8000/docs`
-
-### Option 2: Local Manual Setup
-
-#### Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-3. Start the FastAPI server:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
-
-#### Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Install dependencies and start the development server:
-   ```bash
-   npm install
-   npm run dev
-   ```
-3. Open `http://localhost:3000` in your browser.
+| Layer | Technology |
+|-------|-----------|
+| **AI Engine** | Google Gemini 1.5 Flash + Gemini Vision |
+| **Backend** | FastAPI, SQLAlchemy, FAISS, ReportLab, bcrypt JWT |
+| **Frontend** | Next.js 14, TypeScript, Framer Motion, Recharts |
+| **Database** | SQLite (upgradeable to PostgreSQL) |
+| **Deployment** | Vercel (frontend) + Render (backend) |
 
 ---
 
-## How to Test the Autonomous Cascade
+## 🌱 Social Impact — UN SDGs
 
-1. Navigate to the **Image Scanner** page.
-2. Select a crop leaf image to upload.
-3. Choose a mock disease (e.g., "Tomato Early Blight") from the dropdown.
-4. Click **Scan with AI Swarm**.
-5. Observe the **Swarm Orchestration Stream** in real-time. You will see the Coordinator Agent trigger the Vision Agent, which passes results to the Weather, Risk, Planning, Government, and Market agents to build a unified action plan.
+| SDG | How |
+|-----|-----|
+| SDG 1 — No Poverty | Prevents crop losses that push farmers into debt |
+| SDG 2 — Zero Hunger | Improves yield for food-producing communities |
+| SDG 8 — Decent Work | Increases farm profitability and market access |
+| SDG 10 — Reduced Inequalities | Expert-level intelligence for every smallholder |
+| SDG 13 — Climate Action | Tracks and reduces carbon footprint per farm |
+
+---
+
+## 📄 License
+
+MIT License — Built for the **Google × Kaggle AI Agents Capstone — Agents for Good** track.
