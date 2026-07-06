@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Upload, AlertCircle, CheckCircle, ShieldAlert, Sparkles, Download, BrainCircuit, Activity } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle, ShieldAlert, Sparkles, BrainCircuit } from "lucide-react";
 
 export default function ImageScanner() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [mockDisease, setMockDisease] = useState("Tomato Early Blight");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -15,39 +16,54 @@ export default function ImageScanner() {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       setPreviewUrl(URL.createObjectURL(selectedFile));
+      setResult(null);
+      setError(null);
     }
   };
 
-  const handleUpload = (e: React.FormEvent) => {
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
 
     setLoading(true);
     setResult(null);
+    setError(null);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("You are not logged in. Please log in again.");
+      setLoading(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("farm_id", "1");
     formData.append("mock_disease", mockDisease);
 
-    fetch("/api/v1/agents/scan", {
-      method: "POST",
-      body: formData
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setResult(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error scanning image", err);
-        setLoading(false);
+    try {
+      const res = await fetch("/api/v1/agents/scan", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: `Server error: ${res.status}` }));
+        throw new Error(errData.detail || "Scan failed");
+      }
+
+      const data = await res.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Is the backend running?");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-8">
-      {/* Title */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Image Scanner</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400">Upload crop leaves or pests to run the autonomous multi-agent diagnostics.</p>
@@ -66,7 +82,7 @@ export default function ImageScanner() {
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
               <Upload className="mx-auto text-gray-400 mb-2" size={32} />
-              <p className="text-sm font-medium">Drag & drop or click to upload</p>
+              <p className="text-sm font-medium">Drag &amp; drop or click to upload</p>
               <p className="text-xs text-gray-400 mt-1">Supports PNG, JPG, JPEG up to 10MB</p>
             </div>
 
@@ -91,10 +107,17 @@ export default function ImageScanner() {
               </select>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={!file || loading}
-              className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:bg-gray-400 font-semibold text-sm text-white shadow-lg shadow-teal-600/15 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold text-sm text-white shadow-lg shadow-teal-600/15 flex items-center justify-center gap-2 transition-colors"
             >
               {loading ? (
                 <>
@@ -108,11 +131,38 @@ export default function ImageScanner() {
           </form>
         </div>
 
-        {/* Diagnostic Results */}
+        {/* Results */}
         <div className="lg:col-span-2 space-y-6">
-          {result ? (
+          {loading && (
+            <div className="glass-panel p-8 rounded-2xl space-y-4">
+              <h3 className="font-semibold text-base flex items-center gap-2">
+                <BrainCircuit className="text-teal-600 animate-pulse" /> Swarm Activating...
+              </h3>
+              <div className="space-y-3 font-mono text-xs text-gray-600 dark:text-slate-300">
+                {[
+                  "[Vision Agent]: Analyzing crop image for disease patterns...",
+                  "[Weather Agent]: Cross-referencing current climate conditions...",
+                  "[Risk Agent]: Calculating yield loss probability...",
+                  "[Planning Agent]: Generating treatment schedule...",
+                  "[GovScheme Agent]: Searching for applicable insurance...",
+                  "[Market Agent]: Evaluating crop sellability...",
+                  "[Memory Agent]: Saving event to farm history...",
+                  "[Notification Agent]: Scheduling treatment reminders...",
+                  "[Report Agent]: Compiling diagnostic summary...",
+                  "[Coordinator]: Synthesizing all agent outputs...",
+                ].map((log, i) => (
+                  <div key={i} className="flex gap-2 animate-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
+                    <span className="text-teal-600 dark:text-teal-400 font-bold flex-shrink-0">►</span>
+                    <span>{log}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result && !loading ? (
             <div className="space-y-6">
-              {/* Main Diagnosis Summary */}
+              {/* Diagnosis */}
               <div className="glass-panel p-6 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">Diagnosis Report</span>
@@ -120,45 +170,55 @@ export default function ImageScanner() {
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-extrabold text-red-600 dark:text-red-400">{result.workflow_results.diagnosis.disease_name}</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Classification: {result.workflow_results.diagnosis.pest_or_disease}</p>
+                    <h2 className="text-2xl font-extrabold text-red-600 dark:text-red-400">
+                      {result.workflow_results?.diagnosis?.disease_name || "Unknown"}
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Classification: {result.workflow_results?.diagnosis?.pest_or_disease || "N/A"}
+                    </p>
                   </div>
                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 border border-border px-4 py-2 rounded-xl">
                     <div className="text-center">
-                      <span className="text-lg font-bold text-red-500">{result.workflow_results.diagnosis.severity_score * 100}%</span>
-                      <p className="text-[10px] text-gray-400">Severity Score</p>
+                      <span className="text-lg font-bold text-red-500">
+                        {Math.round((result.workflow_results?.diagnosis?.severity_score || 0) * 100)}%
+                      </span>
+                      <p className="text-[10px] text-gray-400">Severity</p>
                     </div>
                     <div className="text-center border-l border-border pl-4">
-                      <span className="text-sm font-semibold">{result.workflow_results.diagnosis.growth_stage}</span>
+                      <span className="text-sm font-semibold">{result.workflow_results?.diagnosis?.growth_stage || "N/A"}</span>
                       <p className="text-[10px] text-gray-400">Growth Stage</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Symptoms observed:</h4>
-                  <p className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed">{result.workflow_results.diagnosis.symptoms}</p>
+                  <h4 className="font-semibold text-sm">Symptoms Observed:</h4>
+                  <p className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed">
+                    {result.workflow_results?.diagnosis?.symptoms || "N/A"}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Actionable Treatment Plan:</h4>
-                  <div className="p-4 rounded-xl bg-teal-550/10 dark:bg-teal-900/10 border border-teal-500/20 text-sm text-gray-600 dark:text-slate-300 font-medium space-y-1.5">
-                    {result.workflow_results.diagnosis.treatment_plan.split("\n").map((line: string, i: number) => (
+                  <h4 className="font-semibold text-sm">Treatment Plan:</h4>
+                  <div className="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-900/10 border border-teal-500/20 text-sm text-gray-600 dark:text-slate-300 space-y-1.5">
+                    {(result.workflow_results?.diagnosis?.treatment_plan || "").split("\n").map((line: string, i: number) => (
                       <p key={i}>{line}</p>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Swarm Actions Generated */}
+              {/* Tasks + Swarm integrations */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Planning Agent Tasks */}
                 <div className="glass-panel p-6 rounded-2xl space-y-4">
                   <h3 className="font-semibold text-base flex items-center gap-2">
                     <CheckCircle className="text-teal-600" /> Treatment Tasks Added
                   </h3>
                   <div className="space-y-2.5">
-                    {result.workflow_results.tasks.daily_tasks.concat(result.workflow_results.tasks.weekly_tasks).slice(0, 3).map((task: any, i: number) => (
+                    {[
+                      ...(result.workflow_results?.tasks?.daily_tasks || []),
+                      ...(result.workflow_results?.tasks?.weekly_tasks || []),
+                    ].slice(0, 3).map((task: any, i: number) => (
                       <div key={i} className="p-3 rounded-xl border border-border bg-white/40 dark:bg-slate-900/40">
                         <p className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">{task.category}</p>
                         <p className="text-sm font-semibold mt-0.5">{task.title}</p>
@@ -168,37 +228,36 @@ export default function ImageScanner() {
                   </div>
                 </div>
 
-                {/* Market & Government Integration */}
                 <div className="glass-panel p-6 rounded-2xl space-y-4">
                   <h3 className="font-semibold text-base flex items-center gap-2">
                     <Sparkles className="text-teal-600" /> Swarm Integrations
                   </h3>
                   <div className="space-y-3.5 text-sm">
-                    {/* Market */}
                     <div className="space-y-1">
                       <p className="text-xs text-gray-400 font-semibold">MARKET OPPORTUNITY</p>
                       <p className="font-medium text-gray-600 dark:text-slate-300">
-                        {result.workflow_results.market.selling_opportunity}
+                        {result.workflow_results?.market?.selling_opportunity || "N/A"}
                       </p>
                     </div>
-                    {/* Government */}
                     <div className="space-y-1 border-t border-border pt-3">
-                      <p className="text-xs text-gray-400 font-semibold">ELGIBLE GOVT SCHEMES</p>
+                      <p className="text-xs text-gray-400 font-semibold">ELIGIBLE GOVT SCHEME</p>
                       <p className="font-medium text-gray-600 dark:text-slate-300">
-                        Matches <b>{result.workflow_results.schemes[0]?.title}</b>. Benefit: {result.workflow_results.schemes[0]?.benefits}
+                        {result.workflow_results?.schemes?.[0]?.title
+                          ? <>Matches <b>{result.workflow_results.schemes[0].title}</b>. Benefit: {result.workflow_results.schemes[0].benefits}</>
+                          : "No matching schemes found"}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Live Swarm Communication Log */}
+              {/* Thought Logs */}
               <div className="glass-panel p-6 rounded-2xl space-y-4">
                 <h3 className="font-semibold text-base flex items-center gap-2">
-                  <BrainCircuit className="text-teal-600" /> Swarm Orchestration Stream
+                  <BrainCircuit className="text-teal-600" /> Swarm Orchestration Log
                 </h3>
                 <div className="space-y-3 max-h-48 overflow-y-auto font-mono text-xs text-gray-600 dark:text-slate-300 pr-2">
-                  {result.workflow_results.thought_logs.map((log: any, i: number) => (
+                  {(result.workflow_results?.thought_logs || []).map((log: any, i: number) => (
                     <div key={i} className="flex gap-2">
                       <span className="text-teal-600 dark:text-teal-400 font-bold flex-shrink-0">[{log.agent}]:</span>
                       <span>{log.thought}</span>
@@ -207,11 +266,13 @@ export default function ImageScanner() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : !loading && (
             <div className="glass-panel p-12 rounded-2xl text-center text-gray-400 flex flex-col items-center justify-center min-h-[400px]">
               <ShieldAlert size={48} className="text-teal-500/30 mb-4" />
               <p className="text-base font-semibold">No active scan results.</p>
-              <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">Upload a leaf photo and click Scan to activate the autonomous multi-agent analysis.</p>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">
+                Upload a leaf photo and click Scan to activate the autonomous multi-agent analysis.
+              </p>
             </div>
           )}
         </div>
