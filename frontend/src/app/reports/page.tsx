@@ -14,8 +14,8 @@ export default function Reports() {
     fetchReports();
   }, []);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
