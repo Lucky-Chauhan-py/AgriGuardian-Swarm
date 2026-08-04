@@ -17,19 +17,56 @@ export default function AIAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const [activeThoughts, setActiveThoughts] = useState<any[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [userName, setUserName] = useState("Farmer");
+  const [activeFarmId, setActiveFarmId] = useState<number>(1);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
-    // Seed initial message if empty
+    // 1. Get user name
+    if (typeof window !== "undefined") {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        try {
+          const userObj = JSON.parse(savedUser);
+          if (userObj.name) {
+            const firstName = userObj.name.split(" ")[0];
+            setUserName(firstName);
+          }
+        } catch (e) {
+          console.error("Error parsing user info", e);
+        }
+      }
+    }
+
+    // 2. Fetch active farm ID dynamically
+    fetch("/api/v1/farms", {
+      headers: getAuthHeaders(),
+    })
+      .then((res) => res.json())
+      .then((farms) => {
+        if (farms && farms.length > 0) {
+          setActiveFarmId(farms[0].id);
+        }
+      })
+      .catch((err) => console.error("Error fetching farms for assistant", err));
+  }, []);
+
+  useEffect(() => {
+    // Seed initial message with dynamic username
     setMessages([
       {
         id: 0,
-        message: "Hello Rajesh! I am the AgriGuardian Swarm. How can I assist you with your farm operations today?",
+        message: `Hello ${userName}! I am the AgriGuardian Swarm. How can I assist you with your farm operations today?`,
         sender: "system",
         created_at: new Date().toISOString()
       }
     ]);
-  }, []);
+  }, [userName]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,8 +88,11 @@ export default function AIAssistant() {
     // Call Swarm Agent API
     fetch("/api/v1/agents/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: textToSend, farm_id: 1 })
+      headers: { 
+        "Content-Type": "application/json",
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ message: textToSend, farm_id: activeFarmId })
     })
       .then((res) => res.json())
       .then((data) => {
@@ -95,7 +135,7 @@ export default function AIAssistant() {
       const formData = new FormData();
       formData.append("message", speechResult);
       formData.append("lang", selectedLanguage);
-      formData.append("farm_id", "1");
+      formData.append("farm_id", String(activeFarmId));
 
       const userMsg: Message = {
         id: Date.now(),
@@ -107,6 +147,7 @@ export default function AIAssistant() {
 
       fetch("/api/v1/agents/voice", {
         method: "POST",
+        headers: getAuthHeaders(),
         body: formData
       })
         .then((res) => res.json())

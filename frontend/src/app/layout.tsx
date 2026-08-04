@@ -36,6 +36,7 @@ export default function RootLayout({
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("en");
   const [user, setUser] = useState<{ name: string; email: string; initials: string } | null>(null);
+  const [farmName, setFarmName] = useState("Loading...");
 
   // Pages that don't need auth or the sidebar layout
   const isPublicPage = pathname === "/" || pathname === "/auth";
@@ -63,6 +64,20 @@ export default function RootLayout({
       router.push("/auth");
       return;
     }
+
+    // Fetch user's farm name dynamically
+    fetch("/api/v1/farms", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((farms) => {
+        if (farms && farms.length > 0) {
+          setFarmName(farms[0].name);
+        } else {
+          setFarmName("No Active Farm");
+        }
+      })
+      .catch(() => setFarmName("No Active Farm"));
 
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
@@ -236,7 +251,7 @@ export default function RootLayout({
                   </button>
                   <div className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-slate-300">
                     <Sprout size={16} className="text-teal-600" />
-                    Green Valley Farms
+                    {farmName}
                   </div>
                 </div>
 

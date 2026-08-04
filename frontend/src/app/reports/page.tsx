@@ -9,6 +9,9 @@ export default function Reports() {
   const [generating, setGenerating] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [includeFinancials, setIncludeFinancials] = useState(true);
+  const [includeTasks, setIncludeTasks] = useState(true);
+  const [includeAnalytics, setIncludeAnalytics] = useState(true);
 
   useEffect(() => {
     fetchReports();
@@ -44,7 +47,8 @@ export default function Reports() {
     setGenerating(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/reports?farm_id=1", {
+      const url = `/api/v1/reports?farm_id=1&include_financials=${includeFinancials}&include_tasks=${includeTasks}&include_analytics=${includeAnalytics}`;
+      const res = await fetch(url, {
         method: "POST",
         headers: getAuthHeaders(),
       });
@@ -87,6 +91,31 @@ export default function Reports() {
             </>
           )}
         </button>
+      </div>
+
+      {/* Report Configuration Panel */}
+      <div className="glass-panel p-5 rounded-2xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="space-y-1 flex-shrink-0">
+          <h3 className="text-sm font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">Report Configuration Customizer</h3>
+          <p className="text-xs text-gray-500">Toggle sections to include in the generated PDF report.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-6 text-sm font-semibold">
+          {[
+            { label: "Financials", val: includeFinancials, set: setIncludeFinancials },
+            { label: "Tasks & Treatment", val: includeTasks, set: setIncludeTasks },
+            { label: "Eco Analytics", val: includeAnalytics, set: setIncludeAnalytics },
+          ].map((toggle, i) => (
+            <label key={i} className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={toggle.val}
+                onChange={(e) => toggle.set(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-teal-650 focus:ring-teal-500 accent-teal-600 cursor-pointer"
+              />
+              <span>{toggle.label}</span>
+            </label>
+          ))}
+        </div>
       </div>
 
       {error && (

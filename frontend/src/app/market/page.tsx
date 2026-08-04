@@ -173,6 +173,140 @@ export default function MarketIntelligence() {
           </div>
         </div>
       </div>
+
+      {/* Transport Arbitrage Calculator */}
+      <TransportArbitrage commodity={commodity} qtyQuintals={qtyQuintals} />
+    </div>
+  );
+}
+
+// Sub-component: Mandi Transport Arbitrage Calculator
+function TransportArbitrage({ commodity, qtyQuintals }: { commodity: string; qtyQuintals: number }) {
+  const [vehicle, setVehicle] = useState("Mini-Truck");
+  const [grade, setGrade] = useState("Grade A");
+
+  const vehicleRates: Record<string, number> = {
+    "Tractor": 15,
+    "Mini-Truck": 25,
+    "Heavy Truck": 40
+  };
+
+  const markets = [
+    { name: "Bareilly Mandi", distance: 8, basePrice: commodity === "Tomato" ? 2200 : 2245 },
+    { name: "Lucknow Grain Market", distance: 75, basePrice: (commodity === "Tomato" ? 2200 : 2245) + 250 },
+    { name: "Regional FPO Hub", distance: 15, basePrice: (commodity === "Tomato" ? 2200 : 2245) - 50 }
+  ];
+
+  const rate = vehicleRates[vehicle] || 25;
+
+  const calculations = markets.map(m => {
+    // Grade adjustment
+    let price = m.basePrice;
+    if (grade === "Grade B") price = Math.round(m.basePrice * 0.90);
+    if (grade === "Grade C") price = Math.round(m.basePrice * 0.75);
+
+    const revenue = price * qtyQuintals;
+    const transportCost = m.distance * rate * 2; // round trip
+    const loadingCost = qtyQuintals * 20; // loading/unloading
+    const mandiTax = Math.round(revenue * 0.015); // 1.5% tax
+    const totalExpenses = transportCost + loadingCost + mandiTax;
+    const netProfit = revenue - totalExpenses;
+
+    return {
+      name: m.name,
+      revenue,
+      transportCost,
+      loadingCost,
+      mandiTax,
+      totalExpenses,
+      netProfit,
+      pricePerQ: price
+    };
+  });
+
+  // Find optimal market with highest net profit
+  const optimalMarket = calculations.reduce((prev, current) => (prev.netProfit > current.netProfit) ? prev : current);
+
+  return (
+    <div className="glass-panel p-6 rounded-2xl space-y-6">
+      <div>
+        <h3 className="font-bold text-lg text-teal-600 dark:text-teal-400">Mandi Transport Arbitrage Calculator</h3>
+        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+          Select your vehicle type and crop quality grade to dynamically calculate the optimal market with high net profit.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold">Transport Vehicle</label>
+            <select
+              value={vehicle}
+              onChange={(e) => setVehicle(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-border bg-white dark:bg-slate-900 text-sm focus:outline-none"
+            >
+              <option>Tractor (₹15/km)</option>
+              <option>Mini-Truck (₹25/km)</option>
+              <option>Heavy Truck (₹40/km)</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold">Harvest Grade Quality</label>
+            <select
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-border bg-white dark:bg-slate-900 text-sm focus:outline-none"
+            >
+              <option value="Grade A">Grade A (Optimal / Fresh)</option>
+              <option value="Grade B">Grade B (Slightly Damaged -10%)</option>
+              <option value="Grade C">Grade C (Damaged/Deficient -25%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="md:col-span-2 space-y-4">
+          <div className="space-y-3">
+            {calculations.map((calc, idx) => {
+              const isOptimal = calc.name === optimalMarket.name;
+              return (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-xl border transition-all ${
+                    isOptimal
+                      ? "border-emerald-500 bg-emerald-500/5 dark:bg-emerald-950/10"
+                      : "border-border bg-white/40 dark:bg-slate-900/40"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">{calc.name}</span>
+                        {isOptimal && (
+                          <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                            Optimal Choice
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        Adjusted Price: ₹{calc.pricePerQ}/q | Gross: ₹{calc.revenue.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-extrabold text-teal-600 dark:text-teal-400">
+                        ₹{calc.netProfit.toLocaleString()}
+                      </span>
+                      <p className="text-[9px] text-gray-400">
+                        Expenses: ₹{calc.totalExpenses.toLocaleString()} (Transport: ₹{calc.transportCost}, Tax: ₹{calc.mandiTax})
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

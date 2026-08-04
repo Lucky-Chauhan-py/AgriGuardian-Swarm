@@ -9,7 +9,16 @@ export default function ImageScanner() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCrop, setSelectedCrop] = useState("Tomato");
   const [mockDisease, setMockDisease] = useState("Tomato Early Blight");
+
+  const cropDiseases: Record<string, string[]> = {
+    Tomato: ["Tomato Early Blight", "Tomato Late Blight", "Tomato Spider Mites"],
+    Wheat: ["Wheat Rust", "Wheat Powdery Mildew"],
+    Rice: ["Rice Blast", "Rice Bacterial Leaf Blight"],
+    Potato: ["Potato Late Blight", "Potato Early Blight"],
+    Other: ["Nutrient Deficiency: Iron", "Healthy Leaf"],
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -92,19 +101,38 @@ export default function ImageScanner() {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">Select Disease to Simulate</label>
-              <select
-                value={mockDisease}
-                onChange={(e) => setMockDisease(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-border bg-white dark:bg-slate-900 text-sm focus:outline-none"
-              >
-                <option>Tomato Early Blight</option>
-                <option>Tomato Late Blight</option>
-                <option>Tomato Spider Mites</option>
-                <option>Nutrient Deficiency: Iron</option>
-                <option>Healthy Leaf</option>
-              </select>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Select Crop Type</label>
+                <select
+                  value={selectedCrop}
+                  onChange={(e) => {
+                    const crop = e.target.value;
+                    setSelectedCrop(crop);
+                    setMockDisease(cropDiseases[crop][0]);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-white dark:bg-slate-900 text-sm focus:outline-none"
+                >
+                  <option>Tomato</option>
+                  <option>Wheat</option>
+                  <option>Rice</option>
+                  <option>Potato</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Select Disease to Simulate</label>
+                <select
+                  value={mockDisease}
+                  onChange={(e) => setMockDisease(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-white dark:bg-slate-900 text-sm focus:outline-none"
+                >
+                  {cropDiseases[selectedCrop].map((disease) => (
+                    <option key={disease}>{disease}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {error && (

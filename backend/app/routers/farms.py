@@ -48,6 +48,23 @@ def get_farm(farm_id: int, db: Session = Depends(get_db), current_user: User = D
         raise HTTPException(status_code=404, detail="Farm not found")
     return farm
 
+@router.put("/{farm_id}", response_model=FarmResponse)
+def update_farm(farm_id: int, farm_in: FarmCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    farm = db.query(Farm).filter(Farm.id == farm_id, Farm.owner_id == current_user.id).first()
+    if not farm:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    
+    farm.name = farm_in.name
+    farm.location = farm_in.location
+    farm.size_acres = farm_in.size_acres
+    farm.soil_type = farm_in.soil_type
+    farm.water_source = farm_in.water_source
+    farm.irrigation_type = farm_in.irrigation_type
+    
+    db.commit()
+    db.refresh(farm)
+    return farm
+
 @router.post("/{farm_id}/fields", response_model=FieldResponse)
 def create_field(farm_id: int, field_in: FieldCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     farm = db.query(Farm).filter(Farm.id == farm_id, Farm.owner_id == current_user.id).first()

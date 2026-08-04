@@ -29,19 +29,46 @@ import {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [hasFarm, setHasFarm] = useState<boolean | null>(null);
+
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   useEffect(() => {
-    // Fetch analytics data from backend
-    fetch("/api/v1/analytics?farm_id=1")
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json);
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        const farmRes = await fetch("/api/v1/farms", {
+          headers: getAuthHeaders(),
+        });
+        if (!farmRes.ok) throw new Error("Farms fetch failed");
+        const farms = await farmRes.json();
+        
+        if (farms.length === 0) {
+          setHasFarm(false);
+          setLoading(false);
+          return;
+        }
+
+        setHasFarm(true);
+        const firstFarm = farms[0];
+
+        const analyticsRes = await fetch(`/api/v1/analytics?farm_id=${firstFarm.id}`, {
+          headers: getAuthHeaders(),
+        });
+        if (!analyticsRes.ok) throw new Error("Analytics fetch failed");
+        const analyticsData = await analyticsRes.json();
+        setData(analyticsData);
+      } catch (err) {
+        console.error("Dashboard initialization error:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching analytics", err);
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
   if (loading) {
@@ -53,32 +80,38 @@ export default function Dashboard() {
     );
   }
 
-  // Fallback data if API fails or is empty
-  const healthScore = data?.crop_health_score ?? 88;
-  const sustainabilityScore = data?.sustainability_score ?? 82;
+  if (hasFarm === false) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center max-w-md mx-auto">
+        <div className="p-4 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400">
+          <MapPin size={48} className="animate-bounce" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">Welcome to AgriGuardian Swarm!</h2>
+          <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed">
+            To activate autonomous swarm monitoring, please register your farm and crop fields in the system.
+          </p>
+        </div>
+        <a
+          href="/farm-overview"
+          className="px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold text-sm text-white shadow-lg shadow-teal-600/15 transition-all"
+        >
+          Register Your Farm
+        </a>
+      </div>
+    );
+  }
+
+  // Bind dynamic data from backend
+  const healthScore = data?.crop_health_score ?? 100;
+  const sustainabilityScore = data?.sustainability_score ?? 78;
   const carbonFootprint = data?.carbon_footprint_kg_co2 ?? 105;
-  const waterEfficiency = data?.water_efficiency_pct ?? 90;
+  const waterEfficiency = data?.water_efficiency_pct ?? 50;
+  const latestDiagnosis = data?.latest_diagnosis ?? null;
 
-  const yieldData = data?.yield_forecast ?? [
-    { month: "Apr", predicted: 10.5, actual: 10.2 },
-    { month: "May", predicted: 11.2, actual: 11.5 },
-    { month: "Jun", predicted: 12.0, actual: 12.1 },
-    { month: "Jul", predicted: 12.5, actual: null }
-  ];
-
-  const healthTrend = data?.health_trend ?? [
-    { date: "Jun 01", score: 80 },
-    { date: "Jun 07", score: 82 },
-    { date: "Jun 13", score: 85 },
-    { date: "Jun 19", score: 84 },
-    { date: "Jun 25", score: 88 }
-  ];
-
-  const timelineEvents = data?.timeline_events ?? [
-    { date: "June 25", title: "Disease Detected", description: "Early Blight detected in North Field. Treatment advised." },
-    { date: "June 12", title: "Fertigation Run", description: "Applied NPK 19:19:19 fertilizer." },
-    { date: "June 01", title: "Planting Completed", description: "Planted tomato seeds in North Field." }
-  ];
+  const yieldData = data?.yield_forecast ?? [];
+  const healthTrend = data?.health_trend ?? [];
+  const timelineEvents = data?.timeline_events ?? [];
 
   return (
     <div className="space-y-8">
@@ -95,19 +128,35 @@ export default function Dashboard() {
       </div>
 
       {/* Top Recommendations Feed */}
-      <div className="glass-panel p-6 rounded-2xl border-l-4 border-teal-500">
+      <div className={`glass-panel p-6 rounded-2xl border-l-4 ${
+        latestDiagnosis ? "border-amber-500" : "border-teal-500"
+      }`}>
         <div className="flex items-start gap-4">
-          <div className="p-2 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400">
+          <div className={`p-2 rounded-xl ${
+            latestDiagnosis ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-teal-500/10 text-teal-600 dark:text-teal-400"
+          }`}>
             <Info size={24} />
           </div>
           <div className="space-y-1">
-            <h3 className="font-semibold text-base">Today's AI Recommendation</h3>
+            <h3 className="font-semibold text-base">
+              {latestDiagnosis ? "Today's AI Recommendation" : "All Systems Nominal"}
+            </h3>
             <p className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed">
-              Tomato Early Blight detected in <b>North Field</b>. Suspend overhead sprinkler irrigation immediately. Apply copper fungicide foliar spray tomorrow morning before wind velocity increases.
+              {latestDiagnosis ? (
+                <>
+                  <b>{latestDiagnosis.disease_name}</b> detected in crop (severity: {Math.round(latestDiagnosis.severity_score * 100)}%). {latestDiagnosis.treatment_plan.split('\n')[0]}
+                </>
+              ) : (
+                "No crop diseases or pest infestations detected. Continue standard monitoring and watering schedules. Perform scans via the Image Scanner to check plant health."
+              )}
             </p>
             <div className="flex gap-4 pt-2">
-              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">Priority: High</span>
-              <span className="text-xs text-gray-400">Agent Source: Vision + Risk Agent</span>
+              <span className={`text-xs font-semibold ${latestDiagnosis ? "text-amber-600 dark:text-amber-400" : "text-emerald-600"}`}>
+                Priority: {latestDiagnosis ? "High" : "Low"}
+              </span>
+              <span className="text-xs text-gray-400">
+                Agent Source: {latestDiagnosis ? "Vision + Risk Agent" : "Coordinator Agent"}
+              </span>
             </div>
           </div>
         </div>
@@ -134,14 +183,18 @@ export default function Dashboard() {
         <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 dark:text-slate-400">Disease Risk</span>
-            <AlertTriangle className="text-red-500" size={20} />
+            <AlertTriangle className={latestDiagnosis ? "text-red-500 animate-pulse" : "text-emerald-500"} size={20} />
           </div>
           <div className="py-4 text-center">
-            <span className="text-4xl font-extrabold text-red-600 dark:text-red-400">Medium</span>
-            <p className="text-xs text-gray-400 mt-1">Early Blight active (65% severity)</p>
+            <span className={`text-4xl font-extrabold ${latestDiagnosis ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {latestDiagnosis ? (latestDiagnosis.severity_score > 0.7 ? "High" : "Medium") : "Low"}
+            </span>
+            <p className="text-xs text-gray-400 mt-1">
+              {latestDiagnosis ? `${latestDiagnosis.disease_name} active (${Math.round(latestDiagnosis.severity_score * 100)}% severity)` : "All crops safe & clear"}
+            </p>
           </div>
           <div className="w-full bg-gray-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div style={{ width: "65%" }} className="bg-red-500 h-full rounded-full"></div>
+            <div style={{ width: latestDiagnosis ? `${latestDiagnosis.severity_score * 100}%` : "0%" }} className={`h-full rounded-full ${latestDiagnosis ? "bg-red-500" : "bg-emerald-500"}`}></div>
           </div>
         </div>
 

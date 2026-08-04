@@ -7,21 +7,33 @@ export default function WeatherCenter() {
   const [weather, setWeather] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
-    // Fetch weather agent output
-    fetch("/api/v1/farms/1")
-      .then((res) => res.json())
-      .then((farm) => {
-        // Run weather agent for location
-        const loc = farm.location || "Bareilly, Uttar Pradesh";
-        // Call backend agents endpoint or simulate
-        return fetch(`/api/v1/analytics?farm_id=1`); // Re-using analytics or weather
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        // Mock weather data based on Weather Agent schema
+    const loadWeather = async () => {
+      setLoading(true);
+      try {
+        const farmRes = await fetch("/api/v1/farms", {
+          headers: getAuthHeaders(),
+        });
+        if (!farmRes.ok) throw new Error("Failed to fetch farms");
+        const farms = await farmRes.json();
+        
+        const activeFarm = farms && farms.length > 0 ? farms[0] : null;
+        const loc = activeFarm?.location || "Bareilly, Uttar Pradesh";
+        const farmId = activeFarm?.id || 1;
+
+        const analyticsRes = await fetch(`/api/v1/analytics?farm_id=${farmId}`, {
+          headers: getAuthHeaders(),
+        });
+        if (!analyticsRes.ok) throw new Error("Failed to fetch analytics");
+        const data = await analyticsRes.json();
+
         setWeather({
-          location: "Bareilly, Uttar Pradesh",
+          location: loc,
           current_temp_c: 32.5,
           current_humidity: 63,
           precipitation_mm: 0.0,
@@ -32,7 +44,7 @@ export default function WeatherCenter() {
             {
               type: "Heavy Rain Alert",
               severity: "medium",
-              description: "Heavy rain (up to 25mm) predicted on Friday. Risk of waterlogging in low-lying fields."
+              description: `Heavy rain (up to 25mm) predicted in ${loc}. Risk of waterlogging in low-lying fields.`
             }
           ],
           forecast: [
@@ -45,12 +57,39 @@ export default function WeatherCenter() {
             { day: "Sun", temp: 31, humidity: 70, rain_prob: 15, condition: "Mostly Sunny" }
           ]
         });
+      } catch (err) {
+        console.error("Error loading weather data:", err);
+        setWeather({
+          location: "Register Farm to Set Location",
+          current_temp_c: 28.0,
+          current_humidity: 70,
+          precipitation_mm: 0.0,
+          wind_kph: 10.0,
+          condition: "Sunny",
+          irrigation_recommendation: "Please register your farm under the Farm Overview tab to activate custom agrometeorological irrigation forecasts.",
+          alerts: [
+            {
+              type: "Setup Alert",
+              severity: "low",
+              description: "No farm profile found. Displaying default mock weather details."
+            }
+          ],
+          forecast: [
+            { day: "Mon", temp: 30, humidity: 60, rain_prob: 10, condition: "Sunny" },
+            { day: "Tue", temp: 31, humidity: 55, rain_prob: 5, condition: "Sunny" },
+            { day: "Wed", temp: 32, humidity: 50, rain_prob: 5, condition: "Sunny" },
+            { day: "Thu", temp: 32, humidity: 50, rain_prob: 10, condition: "Sunny" },
+            { day: "Fri", temp: 33, humidity: 52, rain_prob: 10, condition: "Sunny" },
+            { day: "Sat", temp: 31, humidity: 55, rain_prob: 15, condition: "Partly Cloudy" },
+            { day: "Sun", temp: 30, humidity: 60, rain_prob: 20, condition: "Partly Cloudy" }
+          ]
+        });
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error loading weather", err);
-        setLoading(false);
-      });
+      }
+    };
+
+    loadWeather();
   }, []);
 
   if (loading) {

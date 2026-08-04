@@ -19,7 +19,14 @@ def get_reports(farm_id: int, db: Session = Depends(get_db), current_user: User 
     return db.query(Report).filter(Report.farm_id == farm_id).order_by(Report.created_at.desc()).all()
 
 @router.post("", response_model=ReportResponse)
-def generate_report(farm_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def generate_report(
+    farm_id: int,
+    include_financials: bool = True,
+    include_tasks: bool = True,
+    include_analytics: bool = True,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     farm = db.query(Farm).filter(Farm.id == farm_id, Farm.owner_id == current_user.id).first()
     if not farm:
         raise HTTPException(status_code=404, detail="Farm not found or access denied")
@@ -29,19 +36,30 @@ def generate_report(farm_id: int, db: Session = Depends(get_db), current_user: U
     farm_profile = profile_res["output"]
     farm_profile["farmer_name"] = current_user.full_name or "Farmer"
     
-    tasks = db.query(Task).filter(Task.farm_id == farm_id, Task.status == "pending").all()
-    task_list = [{"title": t.title, "category": t.category, "due_date": t.due_date.strftime("%Y-%m-%d"), "status": t.status} for t in tasks]
+    task_list = []
+    if include_tasks:
+        tasks = db.query(Task).filter(Task.farm_id == farm_id, Task.status == "pending").all()
+        task_list = [{"title": t.title, "category": t.category, "due_date": t.due_date.strftime("%Y-%m-%d"), "status": t.status} for t in tasks]
     
+    analytics_mock = {}
+    if include_analytics:
+        analytics_mock = {"crop_health_score": 85, "sustainability_score": 75}
+    else:
+        analytics_mock = {"crop_health_score": "N/A", "sustainability_score": "N/A"}
+        
     # Run Report Agent
-    analytics_mock = {"crop_health_score": 85, "sustainability_score": 75}
     report_res = report_agent.run(farm_profile, analytics_mock, task_list)
-    
     out = report_res["output"]
     
     # Save Report to DB
+    report_title = out["report_title"]
+    if not include_financials:
+        out["financials"] = None
+        report_title = report_title.replace("Full", "Custom")
+
     report = Report(
         farm_id=farm_id,
-        title=out["report_title"],
+        title=report_title,
         file_path=out["pdf_url"],
         summary=", ".join(out["summary"]),
         data_json=out["financials"],

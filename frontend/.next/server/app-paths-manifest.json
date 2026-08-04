@@ -1,17 +1,8 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/auth/page": "app/auth/page.js",
-  "/assistant/page": "app/assistant/page.js",
-  "/market/page": "app/market/page.js",
-  "/analytics/page": "app/analytics/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/farm-overview/page": "app/farm-overview/page.js",
-  "/reports/page": "app/reports/page.js",
-  "/schemes/page": "app/schemes/page.js",
-  "/notifications/page": "app/notifications/page.js",
-  "/scanner/page": "app/scanner/page.js",
-  "/settings/page": "app/settings/page.js",
-  "/page": "app/page.js",
-  "/tasks/page": "app/tasks/page.js",
-  "/weather/page": "app/weather/page.js"
+  "/auth/page": "app/auth/page.js",
+  "/assistant/page": "app/assistant/page.js",
+  "/scanner/page": "app/scanner/page.js"
 }
