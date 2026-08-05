@@ -25,9 +25,13 @@ def get_analytics(farm_id: int, db: Session = Depends(get_db), current_user: Use
     ).order_by(CropImage.captured_at.desc()).first()
 
     # Dynamic crop health score calculation
-    health_score = 100
+    # None means no scan data yet — frontend will show "No Data" instead of a number
+    health_score = None
     latest_diagnosis = None
+    has_scan_data = False
+
     if latest_scan:
+        has_scan_data = True
         health_score = int(100 - (latest_scan.severity_score * 40))
         latest_diagnosis = {
             "disease_name": latest_scan.diagnosis,
@@ -37,17 +41,14 @@ def get_analytics(farm_id: int, db: Session = Depends(get_db), current_user: Use
             "treatment_plan": latest_scan.treatment_plan
         }
 
-    # Crop health score trend (simulated based on historical scans)
+    # Crop health score trend — only build if there are actual scans
     health_trend = []
-    base_date = datetime.date.today() - datetime.timedelta(days=30)
-    for i in range(5):
-        date_str = (base_date + datetime.timedelta(days=i*6)).strftime("%b %d")
-        if latest_scan:
-            # If disease is active, show health dip
+    if has_scan_data:
+        base_date = datetime.date.today() - datetime.timedelta(days=30)
+        for i in range(5):
+            date_str = (base_date + datetime.timedelta(days=i*6)).strftime("%b %d")
             score = 100 - (i * 3) if i < 4 else health_score
-        else:
-            score = 100
-        health_trend.append({"date": date_str, "score": score})
+            health_trend.append({"date": date_str, "score": score})
 
     # Yield prediction vs actual
     yield_data = [
@@ -89,9 +90,10 @@ def get_analytics(farm_id: int, db: Session = Depends(get_db), current_user: Use
             })
 
     return {
-        "crop_health_score": health_score,
-        "sustainability_score": latest_metric.sustainability_score if latest_metric else 78,
-        "carbon_footprint_kg_co2": latest_metric.carbon_footprint_kg_co2 if latest_metric else 105.0,
+        "crop_health_score": health_score,  # None if no scans yet
+        "has_scan_data": has_scan_data,
+        "sustainability_score": latest_metric.sustainability_score if latest_metric else None,
+        "carbon_footprint_kg_co2": latest_metric.carbon_footprint_kg_co2 if latest_metric else None,
         "water_efficiency_pct": 90.0 if farm.irrigation_type == "Drip" else 75.0 if farm.irrigation_type == "Sprinkler" else 50.0,
         "fertilizer_efficiency_pct": 80.0,
         "health_trend": health_trend,
@@ -99,5 +101,5 @@ def get_analytics(farm_id: int, db: Session = Depends(get_db), current_user: Use
         "water_comparison": water_comparison,
         "expenses": expenses,
         "latest_diagnosis": latest_diagnosis,
-        "timeline_events": timeline_events[:5]  # Limit to latest 5 events
+        "timeline_events": timeline_events[:5]
     }

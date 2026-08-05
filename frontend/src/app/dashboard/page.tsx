@@ -103,10 +103,11 @@ export default function Dashboard() {
   }
 
   // Bind dynamic data from backend
-  const healthScore = data?.crop_health_score ?? 100;
-  const sustainabilityScore = data?.sustainability_score ?? 78;
-  const carbonFootprint = data?.carbon_footprint_kg_co2 ?? 105;
-  const waterEfficiency = data?.water_efficiency_pct ?? 50;
+  const healthScore: number | null = data?.crop_health_score ?? null;
+  const hasScanData: boolean = data?.has_scan_data ?? false;
+  const sustainabilityScore: number | null = data?.sustainability_score ?? null;
+  const carbonFootprint: number | null = data?.carbon_footprint_kg_co2 ?? null;
+  const waterEfficiency: number = data?.water_efficiency_pct ?? 50;
   const latestDiagnosis = data?.latest_diagnosis ?? null;
 
   const yieldData = data?.yield_forecast ?? [];
@@ -146,8 +147,10 @@ export default function Dashboard() {
                 <>
                   <b>{latestDiagnosis.disease_name}</b> detected in crop (severity: {Math.round(latestDiagnosis.severity_score * 100)}%). {latestDiagnosis.treatment_plan.split('\n')[0]}
                 </>
+              ) : hasScanData ? (
+                "No crop diseases or pest infestations detected. Continue standard monitoring. Perform scans via the Image Scanner to check plant health."
               ) : (
-                "No crop diseases or pest infestations detected. Continue standard monitoring and watering schedules. Perform scans via the Image Scanner to check plant health."
+                "No crop scans uploaded yet. Go to the Image Scanner and upload a photo of your crop leaf to activate disease detection and health tracking."
               )}
             </p>
             <div className="flex gap-4 pt-2">
@@ -168,14 +171,20 @@ export default function Dashboard() {
         <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 dark:text-slate-400">Crop Health</span>
-            <Activity className="text-emerald-500" size={20} />
+            <Activity className={healthScore !== null ? "text-emerald-500" : "text-gray-400"} size={20} />
           </div>
           <div className="py-4 text-center">
-            <span className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400">{healthScore}%</span>
-            <p className="text-xs text-gray-400 mt-1">Excellent Growth Index</p>
+            {healthScore !== null ? (
+              <span className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400">{healthScore}%</span>
+            ) : (
+              <span className="text-2xl font-bold text-gray-400 dark:text-slate-500">No Data</span>
+            )}
+            <p className="text-xs text-gray-400 mt-1">
+              {healthScore !== null ? "Based on latest scan" : "Upload a crop scan to measure"}
+            </p>
           </div>
           <div className="w-full bg-gray-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div style={{ width: `${healthScore}%` }} className="bg-emerald-500 h-full rounded-full"></div>
+            <div style={{ width: healthScore !== null ? `${healthScore}%` : "0%" }} className="bg-emerald-500 h-full rounded-full transition-all duration-500"></div>
           </div>
         </div>
 
@@ -183,14 +192,18 @@ export default function Dashboard() {
         <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 dark:text-slate-400">Disease Risk</span>
-            <AlertTriangle className={latestDiagnosis ? "text-red-500 animate-pulse" : "text-emerald-500"} size={20} />
+            <AlertTriangle className={latestDiagnosis ? "text-red-500 animate-pulse" : hasScanData ? "text-emerald-500" : "text-gray-400"} size={20} />
           </div>
           <div className="py-4 text-center">
-            <span className={`text-4xl font-extrabold ${latestDiagnosis ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-              {latestDiagnosis ? (latestDiagnosis.severity_score > 0.7 ? "High" : "Medium") : "Low"}
-            </span>
+            {hasScanData ? (
+              <span className={`text-4xl font-extrabold ${latestDiagnosis ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                {latestDiagnosis ? (latestDiagnosis.severity_score > 0.7 ? "High" : "Medium") : "Low"}
+              </span>
+            ) : (
+              <span className="text-2xl font-bold text-gray-400 dark:text-slate-500">No Data</span>
+            )}
             <p className="text-xs text-gray-400 mt-1">
-              {latestDiagnosis ? `${latestDiagnosis.disease_name} active (${Math.round(latestDiagnosis.severity_score * 100)}% severity)` : "All crops safe & clear"}
+              {latestDiagnosis ? `${latestDiagnosis.disease_name} active (${Math.round(latestDiagnosis.severity_score * 100)}% severity)` : hasScanData ? "All crops safe & clear" : "Scan a crop to detect disease"}
             </p>
           </div>
           <div className="w-full bg-gray-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
@@ -217,11 +230,17 @@ export default function Dashboard() {
         <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 dark:text-slate-400">Eco Score</span>
-            <CheckCircle className="text-teal-500" size={20} />
+            <CheckCircle className={sustainabilityScore !== null ? "text-teal-500" : "text-gray-400"} size={20} />
           </div>
           <div className="py-4 text-center">
-            <span className="text-4xl font-extrabold text-teal-600 dark:text-teal-400">{sustainabilityScore}/100</span>
-            <p className="text-xs text-gray-400 mt-1">Carbon Footprint: {carbonFootprint} kg</p>
+            {sustainabilityScore !== null ? (
+              <span className="text-4xl font-extrabold text-teal-600 dark:text-teal-400">{sustainabilityScore}/100</span>
+            ) : (
+              <span className="text-2xl font-bold text-gray-400 dark:text-slate-500">No Data</span>
+            )}
+            <p className="text-xs text-gray-400 mt-1">
+              {carbonFootprint !== null ? `Carbon: ${carbonFootprint} kg CO₂` : "No eco metrics yet"}
+            </p>
           </div>
           <div className="w-full bg-gray-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
             <div style={{ width: `${sustainabilityScore}%` }} className="bg-teal-500 h-full rounded-full"></div>
