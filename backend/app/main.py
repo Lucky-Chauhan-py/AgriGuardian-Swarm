@@ -43,7 +43,7 @@ app.include_router(analytics.router, prefix=api_router_prefix)
 def seed_db():
     db = SessionLocal()
     try:
-        # 1. Ensure default user exists
+        # 1. Ensure default demo user exists (do NOT overwrite existing users)
         user = db.query(User).filter(User.email == "farmer@agriguardian.com").first()
         if not user:
             user = User(
@@ -57,11 +57,9 @@ def seed_db():
             db.add(user)
             db.commit()
             db.refresh(user)
-            print("User farmer@agriguardian.com created.")
+            print("Demo user farmer@agriguardian.com created.")
         else:
-            user.hashed_password = get_password_hash("farmer123")
-            db.commit()
-            print("User farmer@agriguardian.com password verified/updated.")
+            print("Demo user farmer@agriguardian.com already exists — skipping.")
 
         # 2. Ensure default farm exists for this user
         farm = db.query(Farm).filter(Farm.owner_id == user.id).first()
